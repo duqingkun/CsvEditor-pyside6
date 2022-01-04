@@ -14,7 +14,7 @@ class MainForm(QtWidgets.QMainWindow):
         super().__init__()
 
         self.__setup_ui()
-        self.__set_title(Config.app_name)
+        self.__set_title()
 
         # 定时器更新配置到文件
         self.config_timer = QtCore.QTimer()
@@ -56,21 +56,29 @@ class MainForm(QtWidgets.QMainWindow):
             action = self.file_menu.addAction(txt, func, shortcut)
             action.setIcon(icon)
 
-    def __set_title(self, title):
-        self.setWindowTitle(title)
+    def __set_title(self, csv_file=None, modified=False):
+        _file = csv_file
+        # 如果没有文件，则只显示程序名
+        if not _file:
+            self.setWindowTitle(Config.app_name)
+            return
+        # 如果文件改变，则标题头部加*
+        if modified:
+            _file = "*%s" % _file
+        self.setWindowTitle("%s - %s" % (_file, Config.app_name))
 
     @QtCore.Slot()
     def open_csv_file(self):
         file_name_list = QFileDialog.getOpenFileName(self, '打开文件', Config.open_path, filter='CSV File (*.csv)')
         if file_name_list and len(file_name_list) > 0 and len(file_name_list[0]) > 0:
             self.csv_editor.load_file(file_name_list[0], with_header=True)
-            self.__set_title("%s - %s" % (file_name_list[0], Config.app_name))
+            self.__set_title(file_name_list[0])
             Config.open_path = QtCore.QFileInfo(file_name_list[0]).path()
 
     @QtCore.Slot()
     def close_csv_file(self):
         self.csv_editor.close_file()
-        self.__set_title(Config.app_name)
+        self.__set_title()
 
     @QtCore.Slot()
     def save_csv_file(self):
