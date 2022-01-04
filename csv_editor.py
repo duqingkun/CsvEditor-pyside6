@@ -1,7 +1,7 @@
 import csv
 import enum
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTableWidget, QTableWidgetItem
-from PySide6 import QtCore
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QTableWidget, QTableWidgetItem
+from PySide6.QtCore import Slot, Signal, QFileSystemWatcher
 
 
 class Status(enum.Enum):
@@ -9,13 +9,20 @@ class Status(enum.Enum):
     Closed = 1
 
 
+class ChangedType(enum.Enum):
+    Table = 0  # 表格内容改变
+    File = 1   # csv文件改变
+
+
 class CsvEditor(QWidget):
     # 公共类变量
     status = Status.Closed
+    dataChanged = Signal(ChangedType)
 
     # 私有类变量
     __changed = False
     __file = None
+    __fileWatcher = QFileSystemWatcher()
 
     def __init__(self):
         super().__init__()
@@ -26,6 +33,8 @@ class CsvEditor(QWidget):
         self.layout = QHBoxLayout(self)
         self.layout.addWidget(self.table)
         self.setVisible(False)
+
+        self.__fileWatcher.fileChanged.connect(self.file_changed)
 
     def __set_header(self, header):
         """
@@ -54,15 +63,14 @@ class CsvEditor(QWidget):
         for i, item in enumerate(row):
             self.table.setItem(row_count, i, QTableWidgetItem(item))
 
-    @property
-    def changed(self):
-        """
-        内容是否改变，获取后将状态位清除
-        :return:
-        """
-        _changed = self.__changed
-        self.__changed = False
-        return _changed
+    @Slot()
+    def file_changed(self, file):
+        if file == self.__file:
+            self.dataChanged.emit(ChangedType.File)
+
+    @Slot()
+    def csv_changed(self):
+        self.dataChanged.emit(ChangedType.Table)
 
     @property
     def file(self):
@@ -93,12 +101,17 @@ class CsvEditor(QWidget):
         self.status = Status.Opened
         self.__file = csv_file
         self.setVisible(True)
+        self.table.itemChanged.connect(self.csv_changed)
+        self.__fileWatcher.addPath(csv_file)
 
     def close_file(self):
         """
         关闭
         :return:
         """
+        if self.__file:
+            self.__fileWatcher.removePath(self.__file)
+            self.table.itemChanged.disconnect(self.csv_changed)
         self.table.clear()
         self.table.setColumnCount(0)
         self.table.setRowCount(0)
@@ -136,11 +149,9 @@ class CsvEditor(QWidget):
 
                 # 防止内存开销过大，因此指定行数写入一次
                 if len(rows) == 1000:
-                    print(rows)
                     writer.writerows(rows)
                     rows = []
 
             # 写入剩余数据
             if len(rows):
-                print(rows)
                 writer.writerows(rows)

@@ -1,14 +1,17 @@
 import sys
 import random
 from PySide6 import QtWidgets, QtCore, QtGui
-from PySide6.QtWidgets import QFileDialog, QStyle
-from PySide6.QtCore import QEvent
-from csv_editor import CsvEditor
+from PySide6.QtWidgets import QFileDialog, QStyle, QMessageBox
+from PySide6.QtCore import QEvent, Qt
+
+import csv_editor
+from csv_editor import CsvEditor, ChangedType
 from config import Config
 
 
 class MainForm(QtWidgets.QMainWindow):
-    __title_bar_height = 0  # 标题栏高度
+    __csv_file_changed = False      # csv文件是否改变
+    __focus_in = True
 
     def __init__(self):
         super().__init__()
@@ -22,7 +25,7 @@ class MainForm(QtWidgets.QMainWindow):
         self.config_timer.timeout.connect(self.write_config_timer)
         self.config_timer.start()
 
-        self.__title_bar_height = self.style().pixelMetric(QStyle.PM_TitleBarHeight)
+        self.setFocusPolicy(Qt.StrongFocus)
 
     def __setup_ui(self):
         self.__create_menus()
@@ -38,6 +41,7 @@ class MainForm(QtWidgets.QMainWindow):
         self.layout.addSpacing(5)
         self.layout.addWidget(self.csv_editor)
         self.setCentralWidget(self.central_widget)
+        self.csv_editor.dataChanged.connect(self.csv_changed)
 
     def __create_menus(self):
         """
@@ -83,6 +87,7 @@ class MainForm(QtWidgets.QMainWindow):
     @QtCore.Slot()
     def save_csv_file(self):
         self.csv_editor.save_file()
+        self.__set_title(self.csv_editor.file, False)
 
     @QtCore.Slot()
     def save_as_csv_file(self):
@@ -90,14 +95,31 @@ class MainForm(QtWidgets.QMainWindow):
         if file_name_list and len(file_name_list) > 0 and len(file_name_list[0]) > 0:
             self.csv_editor.save_file(file_name_list[0], with_header=True)
             Config.save_path = QtCore.QFileInfo(file_name_list[0]).path()
+            self.__set_title(self.csv_editor.file, False)
+
+    @QtCore.Slot()
+    def csv_changed(self, type):
+        if type == ChangedType.Table:
+            self.__set_title(self.csv_editor.file, True)
+        else:
+            # 窗口在激活状态，则提示重新加载，否则只记录状态
+            if self.__focus_in and not self.__csv_file_changed:
+                btn = QMessageBox.warning(self, '重新加载', '源文件内容改变，是否重新打开文件？', QMessageBox.Ok | QMessageBox.No)
+                if btn == QMessageBox.Ok:
+                    self.csv_editor.load_file(self.csv_editor.file, with_header=True)
+            else:
+                self.__csv_file_changed = True
 
     def changeEvent(self, event):
-        if event.type() != QEvent.WindowStateChange:
-            return
-        if self.windowState() == QtCore.Qt.WindowMaximized:
-            Config.maximized = 1
-        else:
-            Config.maximized = 0
+        _type = event.type()
+        _state = self.windowState()
+
+        # 处理进入、退出最大化事件
+        if _type == QEvent.WindowStateChange:
+            _maximized = 1 if _state == Qt.WindowMaximized else 0
+            if Config.maximized != _maximized:
+                Config.maximized = _maximized
+                Config.write_config()
 
     def resizeEvent(self, event):
         _size = event.size()
@@ -112,5 +134,16 @@ class MainForm(QtWidgets.QMainWindow):
     def closeEvent(self, event):
         Config.write_config()
 
-    def write_config_timer(self):
+    def focusInEvent(self, event) -> None:
+        self.__focus_in = True
+        if self.__csv_file_changed:
+            self.__csv_file_changed = False
+            btn = QMessageBox.warning(self, '重新加载', '源文件内容改变，是否重新打开文件？', QMessageBox.Ok | QMessageBox.No)
+            if btn == QMessageBox.Ok:
+                self.csv_editor.load_file(self.csv_editor.file, with_header=True)
+
+    def focusOutEvent(self, event) -> None:
+        self.__focus_in = False
+
+    def write_config_timer(self) -> None:
         Config.write_config()

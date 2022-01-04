@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     # 主界面
     widget = main_form.MainForm()
-    if Config.maximized:
+    if Config.maximized == 1:
         widget.showMaximized()
     else:
         widget.setGeometry(Config.position[0], Config.position[1], Config.size[0], Config.size[1])
