@@ -14,10 +14,10 @@ from PySide6.QtGui import QIcon
 
 
 class Icon(object):
-    open_file = None
-    close_file = None
-    save_file = None
-    save_as_file = None
+    OpenFile = None
+    CloseFile = None
+    SaveFile = None
+    SaveAsFile = None
 
 
 class Config(object):
@@ -25,50 +25,50 @@ class Config(object):
     position = [0, 0]  # 窗体初始位置（左上角x y坐标）
     size = [800, 600]  # 窗体初始大小（width,height）
     maximized = False  # 是否最大化显示
-    open_path = '.'
-    save_path = '.'
+    openPath = '.'
+    savePath = '.'
 
     # 私有属性
     __file = 'config.ini'
-    __write_mutex = QMutex()
+    __writeMutex = QMutex()
     __icon = Icon()
-    __app_name = 'CSV Editor'
+    __appName = 'CSV Editor'
 
     # 只读配置项
     @classmethod
     @property
-    def app_name(cls):
-        return cls.__app_name
+    def appName(cls):
+        return cls.__appName
 
     @classmethod
     @property
-    def icon_open_file(cls) -> QIcon:
-        return cls.__icon.open_file
+    def iconOpenFile(cls) -> QIcon:
+        return cls.__icon.OpenFile
 
     @classmethod
     @property
-    def icon_close_file(cls) -> QIcon:
-        return cls.__icon.close_file
+    def iconCloseFile(cls) -> QIcon:
+        return cls.__icon.CloseFile
 
     @classmethod
     @property
-    def icon_save_file(cls) -> QIcon:
-        return cls.__icon.save_file
+    def iconSaveFile(cls) -> QIcon:
+        return cls.__icon.SaveFile
 
     @classmethod
     @property
-    def icon_save_as_file(cls) -> QIcon:
-        return cls.__icon.save_as_file
+    def iconSaveAsFile(cls) -> QIcon:
+        return cls.__icon.SaveAsFile
 
     @classmethod
     def init(cls, app):
-        cls.__icon.open_file = app.style().standardIcon(QStyle.SP_DialogOpenButton)
-        cls.__icon.save_file = app.style().standardIcon(QStyle.SP_DialogSaveButton)
-        cls.__icon.close_file = app.style().standardIcon(QStyle.SP_DialogCloseButton)
-        cls.__icon.save_as_file = app.style().standardIcon(QStyle.SP_DialogSaveAllButton)
+        cls.__icon.OpenFile = app.style().standardIcon(QStyle.SP_DialogOpenButton)
+        cls.__icon.SaveFile = app.style().standardIcon(QStyle.SP_DialogSaveButton)
+        cls.__icon.CloseFile = app.style().standardIcon(QStyle.SP_DialogCloseButton)
+        cls.__icon.SaveAsFile = app.style().standardIcon(QStyle.SP_DialogSaveAllButton)
 
     @classmethod
-    def read_config(cls):
+    def readConfig(cls):
         settings = QSettings(cls.__file, QSettings.IniFormat)
         settings.beginGroup('Default')
         # 读位置信息
@@ -83,13 +83,13 @@ class Config(object):
         settings.endGroup()
 
         settings.beginGroup('File-Dialog')
-        cls.open_path = settings.value('open', cls.open_path)
-        cls.save_path = settings.value('save', cls.save_path)
+        cls.openPath = settings.value('open', cls.openPath)
+        cls.savePath = settings.value('save', cls.savePath)
         settings.endGroup()
 
     @classmethod
-    def write_config(cls):
-        cls.__write_mutex.lock()
+    def writeConfig(cls):
+        cls.__writeMutex.lock()
         settings = QSettings(cls.__file, QSettings.IniFormat)
         settings.beginGroup('Default')
         settings.setValue('position', cls.position)
@@ -98,8 +98,8 @@ class Config(object):
         settings.endGroup()
 
         settings.beginGroup('File-Dialog')
-        settings.setValue('open', cls.open_path)
-        settings.setValue('save', cls.save_path)
+        settings.setValue('open', cls.openPath)
+        settings.setValue('save', cls.savePath)
         settings.endGroup()
-        cls.__write_mutex.unlock()
+        cls.__writeMutex.unlock()
 

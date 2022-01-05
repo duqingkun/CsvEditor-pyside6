@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     # 读配置文件
     Config.init(app)
-    Config.read_config()
+    Config.readConfig()
 
     # 主界面
     widget = main_form.MainForm()

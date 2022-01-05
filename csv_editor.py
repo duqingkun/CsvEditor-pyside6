@@ -4,39 +4,39 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QTableWidget, QTableWidgetIt
 from PySide6.QtCore import Slot, Signal, QFileSystemWatcher
 
 
-class Status(enum.Enum):
-    Opened = 0
-    Closed = 1
-
-
-class ChangedType(enum.Enum):
-    Table = 0  # 表格内容改变
-    File = 1   # csv文件改变
-
-
 class CsvEditor(QWidget):
+    """
+    csv编辑器控件
+    """
+
+    class ChangedType(enum.Enum):
+        """
+        改变类型：表格内容改变/源文件改变
+        """
+        Table = 0  # 表格内容改变
+        File = 1   # csv文件改变
+
     # 公共类变量
-    status = Status.Closed
-    dataChanged = Signal(ChangedType)
+    dataChanged = Signal(ChangedType)       # 数据改变的信号:表格&文件
 
     # 私有类变量
-    __changed = False
-    __file = None
-    __fileWatcher = QFileSystemWatcher()
+    __tableChanged = False                  # 记录表格内容是否改变
+    __file = None                           # 保存当前打开的文件
+    __fileWatcher = QFileSystemWatcher()    # 文件监视器
 
     def __init__(self):
         super().__init__()
-        self.__setup_ui()
+        self.__setupUi()
 
-    def __setup_ui(self):
+    def __setupUi(self):
         self.table = QTableWidget()
         self.layout = QHBoxLayout(self)
         self.layout.addWidget(self.table)
         self.setVisible(False)
 
-        self.__fileWatcher.fileChanged.connect(self.file_changed)
+        self.__fileWatcher.fileChanged.connect(self.fileChanged)
 
-    def __set_header(self, header):
+    def __setHeader(self, header):
         """
         设置表头
         :param header: 列表
@@ -45,7 +45,7 @@ class CsvEditor(QWidget):
         self.table.setColumnCount(len(header))
         self.table.setHorizontalHeaderLabels(header)
 
-    def __append_row(self, row):
+    def __appendRow(self, row):
         """
         添加一行数据
         :param row: 列表
@@ -64,74 +64,121 @@ class CsvEditor(QWidget):
             self.table.setItem(row_count, i, QTableWidgetItem(item))
 
     @Slot()
-    def file_changed(self, file):
+    def fileChanged(self, file):
+        """
+        源文件改变
+        :param file:
+        :return:
+        """
         if file == self.__file:
-            self.dataChanged.emit(ChangedType.File)
+            self.dataChanged.emit(CsvEditor.ChangedType.File)
 
     @Slot()
-    def csv_changed(self):
-        self.dataChanged.emit(ChangedType.Table)
+    def tableChanged(self):
+        """
+        表格内容改变
+        :return:
+        """
+        self.__tableChanged = True
+        self.dataChanged.emit(CsvEditor.ChangedType.Table)
 
     @property
     def file(self):
+        """
+        获取当前的文件
+        :return:
+        """
         return self.__file
 
-    def load_file(self, csv_file, with_header=False):
+    @property
+    def opened(self) -> bool:
+        """
+        是否有文件打开
+        :return:
+        """
+        if self.__file:
+            return True
+        else:
+            return False
+
+    def loadFile(self, csvFile, withHeader=False):
         """
         加载csv文件
-        :param csv_file: csv文件路径
-        :param with_header: 是否有列头
+        :param csvFile: csv文件路径
+        :param withHeader: 是否有列头
         :return: None
         """
         # 清楚表格
-        self.close_file()
+        self.closeFile()
 
         # 读文件，并填充表格
-        with open(csv_file, 'r', encoding='utf-8') as f:
+        with open(csvFile, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
             row_index = 0
             for row in reader:
-                if with_header and row_index == 0:
+                if withHeader and row_index == 0:
                     # 设置header
-                    self.__set_header(row)
+                    self.__setHeader(row)
                 else:
                     # 添加一行
-                    self.__append_row(row)
+                    self.__appendRow(row)
                 row_index += 1
-        self.status = Status.Opened
-        self.__file = csv_file
-        self.setVisible(True)
-        self.table.itemChanged.connect(self.csv_changed)
-        self.__fileWatcher.addPath(csv_file)
 
-    def close_file(self):
+        # 记录状态
+        # 1. 清除表格内容改变的状态
+        # 2. 保存当前文件
+        # 3. 显示该控件
+        # 4. 连接信号槽
+        # 5. 监视该文件
+        self.__tableChanged = False
+        self.__file = csvFile
+        self.setVisible(True)
+        self.table.itemChanged.connect(self.tableChanged)
+        self.__fileWatcher.addPath(csvFile)
+
+    def closeFile(self):
         """
         关闭
         :return:
         """
+        # 清除状态
+        # 1. 移除监视该文件
+        # 2. 断开信号槽
+        # 3. 隐藏该控件
+        # 4. 清除当前文件
+        # 5. 清空表格
+        # 6. 清除记录表格内容改变的状态位
         if self.__file:
             self.__fileWatcher.removePath(self.__file)
-            self.table.itemChanged.disconnect(self.csv_changed)
-        self.table.clear()
-        self.table.setColumnCount(0)
-        self.table.setRowCount(0)
-        self.status = Status.Closed
-        self.__file = None
-        self.setVisible(False)
+            self.table.itemChanged.disconnect(self.tableChanged)
+            self.setVisible(False)
+            self.__file = None
+            self.table.clear()
+            self.table.setColumnCount(0)
+            self.table.setRowCount(0)
+            self.__tableChanged = False
 
-    def save_file(self, csv_file=None, with_header=False):
-        if not csv_file:
-            csv_file = self.__file
-        if not csv_file:
+    def saveFile(self, csvFile=None, withHeader=False):
+        """
+        保存文件
+        :param csvFile: 保存到的文件名。None: 保存到当前文件
+        :param withHeader: 是否保存列头
+        :return:
+        """
+        # csvFile为空，则使用当前文件
+        if not csvFile:
+            csvFile = self.__file
+        if not csvFile:
             return
 
-        with open(csv_file, 'w', encoding='utf-8', newline='') as f:
+        # 将表格数据写入到文件
+        with open(csvFile, 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
             row_count = self.table.rowCount()
             column_count = self.table.columnCount()
 
             # 写header
-            if with_header:
+            if withHeader:
                 header = []
                 for i in range(0, column_count):
                     item = self.table.horizontalHeaderItem(i).text()
@@ -155,3 +202,14 @@ class CsvEditor(QWidget):
             # 写入剩余数据
             if len(rows):
                 writer.writerows(rows)
+
+        # 另存为时，更新状态
+        # 1. 清除表格内容改变的标志位
+        # 2. 移除监视的旧文件
+        # 3. 监视新文件
+        # 4. 更新当前文件
+        self.__tableChanged = False
+        if self.__file != csvFile:
+            self.__fileWatcher.removePath(self.__file)
+            self.__fileWatcher.addPath(csvFile)
+            self.__file = csvFile
