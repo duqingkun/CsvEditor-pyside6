@@ -3,6 +3,7 @@ import sys
 import main_form
 from PySide6 import QtWidgets
 from config import Config
+from qt_material import apply_stylesheet
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
@@ -13,6 +14,11 @@ if __name__ == '__main__':
 
     # 主界面
     widget = main_form.MainForm()
+
+    # 设置主题风格
+    apply_stylesheet(app, theme='light_yellow.xml')
+
+    # 显示主界面
     if Config.maximized == 1:
         widget.showMaximized()
     else:

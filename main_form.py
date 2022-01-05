@@ -3,10 +3,10 @@ import random
 from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtWidgets import QFileDialog, QStyle, QMessageBox
 from PySide6.QtCore import QEvent, Qt
-
-import csv_editor
 from csv_editor import CsvEditor
 from config import Config
+from qt_material import list_themes
+from qt_material import apply_stylesheet
 
 
 class MainForm(QtWidgets.QMainWindow):
@@ -50,6 +50,7 @@ class MainForm(QtWidgets.QMainWindow):
         菜单
         :return:
         """
+        # >> 文件菜单
         _file_menu_list = [
             # icon, text, callback, shortcut
             [Config.iconOpenFile, '&Open', self.openFile, QtGui.QKeySequence("Ctrl+O")],
@@ -61,6 +62,15 @@ class MainForm(QtWidgets.QMainWindow):
         for icon, txt, func, shortcut in _file_menu_list:
             action = self.file_menu.addAction(txt, func, shortcut)
             action.setIcon(icon)
+
+        # >> 显示菜单
+        self.view_menu = self.menuBar().addMenu('&View')
+        # 主题
+        self.theme_menu = self.view_menu.addMenu('&Theme')
+        self.theme_menu.addAction('None', self.setTheme)
+        _theme_list = list_themes()
+        for index, theme in enumerate(_theme_list):
+            self.theme_menu.addAction(theme[:-4], self.setTheme)
 
     def __setTitle(self, csv_file=None, modified=False):
         _file = csv_file
@@ -136,6 +146,14 @@ class MainForm(QtWidgets.QMainWindow):
                     self.csv_editor.loadFile(self.csv_editor.file, withHeader=True)
             else:
                 self.__csvChanged = True
+
+    @QtCore.Slot()
+    def setTheme(self):
+        _theme = self.sender().text()
+        if _theme == 'None':
+            QtWidgets.QApplication.instance().setStyleSheet("");
+        else:
+            apply_stylesheet(QtWidgets.QApplication.instance(), _theme + '.xml')
 
     def changeEvent(self, event):
         _type = event.type()

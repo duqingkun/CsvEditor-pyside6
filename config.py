@@ -27,6 +27,7 @@ class Config(object):
     maximized = False  # 是否最大化显示
     openPath = '.'
     savePath = '.'
+    theme = ''
 
     # 私有属性
     __file = 'config.ini'
@@ -87,6 +88,10 @@ class Config(object):
         cls.savePath = settings.value('save', cls.savePath)
         settings.endGroup()
 
+        settings.beginGroup('Theme')
+        cls.theme = settings.value('current', cls.theme)
+        settings.endGroup()
+
     @classmethod
     def writeConfig(cls):
         cls.__writeMutex.lock()
@@ -100,6 +105,10 @@ class Config(object):
         settings.beginGroup('File-Dialog')
         settings.setValue('open', cls.openPath)
         settings.setValue('save', cls.savePath)
+        settings.endGroup()
+
+        settings.beginGroup('Theme')
+        settings.setValue('current', cls.theme)
         settings.endGroup()
         cls.__writeMutex.unlock()
 
