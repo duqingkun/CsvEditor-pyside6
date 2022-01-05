@@ -30,7 +30,9 @@ class Config(object):
     theme = ''
 
     # 私有属性
+    __dir = '.'
     __file = 'config.ini'
+    __fullFilePath = __dir + '/' + __file
     __writeMutex = QMutex()
     __icon = Icon()
     __appName = 'CSV Editor'
@@ -62,7 +64,9 @@ class Config(object):
         return cls.__icon.SaveAsFile
 
     @classmethod
-    def init(cls, app):
+    def init(cls, directory, app):
+        cls.__dir = directory
+        cls.__fullFilePath = "%s/%s" % (cls.__dir, cls.__file)
         cls.__icon.OpenFile = app.style().standardIcon(QStyle.SP_DialogOpenButton)
         cls.__icon.SaveFile = app.style().standardIcon(QStyle.SP_DialogSaveButton)
         cls.__icon.CloseFile = app.style().standardIcon(QStyle.SP_DialogCloseButton)
@@ -70,7 +74,7 @@ class Config(object):
 
     @classmethod
     def readConfig(cls):
-        settings = QSettings(cls.__file, QSettings.IniFormat)
+        settings = QSettings(cls.__fullFilePath, QSettings.IniFormat)
         settings.beginGroup('Default')
         # 读位置信息
         _pos = settings.value('Position', cls.position)
@@ -95,7 +99,7 @@ class Config(object):
     @classmethod
     def writeConfig(cls):
         cls.__writeMutex.lock()
-        settings = QSettings(cls.__file, QSettings.IniFormat)
+        settings = QSettings(cls.__fullFilePath, QSettings.IniFormat)
         settings.beginGroup('Default')
         settings.setValue('position', cls.position)
         settings.setValue('size', cls.size)
