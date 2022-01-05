@@ -1,8 +1,8 @@
 import csv
 import enum
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
-from PySide6.QtCore import Slot, Signal, QFileSystemWatcher, Qt
-from PySide6.QtGui import QPalette
+from PySide6.QtCore import Slot, Signal, QFileSystemWatcher, Qt, QFileInfo
+from PySide6.QtGui import QPalette, QDragEnterEvent, QDropEvent
 
 
 class CsvEditor(QWidget):
@@ -17,8 +17,9 @@ class CsvEditor(QWidget):
         Table = 0  # 表格内容改变
         File = 1   # csv文件改变
 
-    # 公共类变量
+    # 信号
     dataChanged = Signal(ChangedType)       # 数据改变的信号:表格&文件
+    fileDroped = Signal(str)                # 文件拖放的信号
 
     # 私有类变量
     __tableChanged = False                  # 记录表格内容是否改变
@@ -35,9 +36,10 @@ class CsvEditor(QWidget):
         self.layout.addWidget(self.table)
         self.table.setAlternatingRowColors(True)
         self.table.setPalette(QPalette(Qt.lightGray))
-        self.setVisible(False)
+        self.table.setVisible(False)
 
         self.__fileWatcher.fileChanged.connect(self.fileChanged)
+        self.setAcceptDrops(True)
 
     def __setHeader(self, header):
         """
@@ -138,7 +140,7 @@ class CsvEditor(QWidget):
         # 5. 监视该文件
         self.__tableChanged = False
         self.__file = csvFile
-        self.setVisible(True)
+        self.table.setVisible(True)
         self.table.itemChanged.connect(self.tableChanged)
         self.__fileWatcher.addPath(csvFile)
 
@@ -157,7 +159,7 @@ class CsvEditor(QWidget):
         if self.__file:
             self.__fileWatcher.removePath(self.__file)
             self.table.itemChanged.disconnect(self.tableChanged)
-            self.setVisible(False)
+            self.table.setVisible(False)
             self.__file = None
             self.table.clear()
             self.table.setColumnCount(0)
@@ -219,3 +221,24 @@ class CsvEditor(QWidget):
             self.__fileWatcher.removePath(self.__file)
             self.__fileWatcher.addPath(csvFile)
             self.__file = csvFile
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls():
+            _urls = event.mimeData().urls()
+            # 1. 没有文件或者文件数量大于1，都不处理
+            # 2. 是文件夹，也不处理
+            if (not _urls) or (len(_urls) > 1):
+                event.ignore()
+                return
+            elif QFileInfo(_urls[0].toLocalFile()).isDir():
+                event.ignore()
+                return
+            # 接受drop事件
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        if event.mimeData().hasUrls():
+            _file = event.mimeData().urls()[0].toLocalFile()
+            self.fileDroped.emit(_file)
+        else:
+            event.ignore()

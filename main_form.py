@@ -1,8 +1,7 @@
 import sys
-import random
 from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtWidgets import QFileDialog, QStyle, QMessageBox
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, Qt, QFileInfo
 from csv_editor import CsvEditor
 from config import Config
 from qt_material import list_themes
@@ -29,6 +28,12 @@ class MainForm(QtWidgets.QMainWindow):
 
         self.setFocusPolicy(Qt.StrongFocus)
 
+        # 如果有入参，则打开入参指定的文件
+        if len(sys.argv) > 1 and QFileInfo(sys.argv[1]).isFile():
+            self.csv_editor.loadFile(sys.argv[1], withHeader=self.__withHeader)
+            self.__setTitle(sys.argv[1])
+            Config.openPath = QFileInfo(sys.argv[1]).path()
+
     def __setupUi(self):
         self.__createMenuAndToolBar()
         self.__createCentral()
@@ -43,7 +48,10 @@ class MainForm(QtWidgets.QMainWindow):
         self.layout.addSpacing(5)
         self.layout.addWidget(self.csv_editor)
         self.setCentralWidget(self.central_widget)
+
+        # 信号槽
         self.csv_editor.dataChanged.connect(self.changed)
+        self.csv_editor.fileDroped.connect(self.fileDroped)
 
     def __createMenuAndToolBar(self):
         """
@@ -163,6 +171,23 @@ class MainForm(QtWidgets.QMainWindow):
             QtWidgets.QApplication.instance().setStyleSheet("")
         else:
             apply_stylesheet(QtWidgets.QApplication.instance(), _theme + '.xml')
+
+    @QtCore.Slot()
+    def fileDroped(self, file: str):
+        # 判断当前是否有文件打开.若打开的文件相同，则不处理
+        if self.csv_editor.opened:
+            if self.csv_editor.file == file:
+                return
+            btn = QMessageBox.warning(self, '打开文件', '是否关闭当前文件？', QMessageBox.Ok | QMessageBox.No)
+            if btn == QMessageBox.Ok:
+                self.closeFile()
+            else:
+                return
+
+        # 打开文件
+        self.csv_editor.loadFile(file, withHeader=self.__withHeader)
+        self.__setTitle(file)
+        Config.openPath = QtCore.QFileInfo(file).path()
 
     def changeEvent(self, event):
         _type = event.type()
