@@ -150,8 +150,9 @@ class MainForm(QtWidgets.QMainWindow):
     @QtCore.Slot()
     def setTheme(self):
         _theme = self.sender().text()
+        Config.theme = _theme
         if _theme == 'None':
-            QtWidgets.QApplication.instance().setStyleSheet("");
+            QtWidgets.QApplication.instance().setStyleSheet("")
         else:
             apply_stylesheet(QtWidgets.QApplication.instance(), _theme + '.xml')
 
