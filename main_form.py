@@ -30,7 +30,7 @@ class MainForm(QtWidgets.QMainWindow):
         self.setFocusPolicy(Qt.StrongFocus)
 
     def __setupUi(self):
-        self.__createMenus()
+        self.__createMenuAndToolBar()
         self.__createCentral()
 
     def __createCentral(self):
@@ -45,32 +45,40 @@ class MainForm(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.csv_editor.dataChanged.connect(self.changed)
 
-    def __createMenus(self):
+    def __createMenuAndToolBar(self):
         """
-        菜单
+        菜单栏和工具栏
         :return:
         """
         # >> 文件菜单
-        _file_menu_list = [
+        _fileMenuList = [
             # icon, text, callback, shortcut
             [Config.iconOpenFile, '&Open', self.openFile, QtGui.QKeySequence("Ctrl+O")],
             [Config.iconCloseFile, '&Close', self.closeFile, QtGui.QKeySequence("Ctrl+C")],
             [Config.iconSaveFile, '&Save', self.saveFile, QtGui.QKeySequence("Ctrl+S")],
             [Config.iconSaveAsFile, 'Save As ...', self.saveAsFile, QtGui.QKeySequence("")],
         ]
-        self.file_menu = self.menuBar().addMenu('&File')
-        for icon, txt, func, shortcut in _file_menu_list:
-            action = self.file_menu.addAction(txt, func, shortcut)
+        self.fileMenu = self.menuBar().addMenu('&File')
+        self.fileToolBar = self.addToolBar('&File')
+        for icon, txt, func, shortcut in _fileMenuList:
+            action = self.fileMenu.addAction(txt, func, shortcut)
             action.setIcon(icon)
+            self.fileToolBar.addAction(action)
 
         # >> 显示菜单
-        self.view_menu = self.menuBar().addMenu('&View')
+        self.viewMenu = self.menuBar().addMenu('&View')
         # 主题
-        self.theme_menu = self.view_menu.addMenu('&Theme')
-        self.theme_menu.addAction('None', self.setTheme)
-        _theme_list = list_themes()
-        for index, theme in enumerate(_theme_list):
-            self.theme_menu.addAction(theme[:-4], self.setTheme)
+        self.themeActionGroup = QtGui.QActionGroup(self)
+        self.themeActionGroup.setExclusionPolicy(QtGui.QActionGroup.ExclusionPolicy.Exclusive)
+        self.themeMenu = self.viewMenu.addMenu('&Theme')
+        _themeList = list_themes()
+        _themeList.insert(0, 'None.xml')
+        for theme in _themeList:
+            _action = self.themeMenu.addAction(theme[:-4], self.setTheme)
+            _action.setCheckable(True)
+            self.themeActionGroup.addAction(_action)
+            if theme[:-4] == Config.theme:
+                _action.setChecked(True)
 
     def __setTitle(self, csv_file=None, modified=False):
         _file = csv_file

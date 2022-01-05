@@ -66,7 +66,7 @@ class Config(object):
         cls.__icon.OpenFile = app.style().standardIcon(QStyle.SP_DialogOpenButton)
         cls.__icon.SaveFile = app.style().standardIcon(QStyle.SP_DialogSaveButton)
         cls.__icon.CloseFile = app.style().standardIcon(QStyle.SP_DialogCloseButton)
-        cls.__icon.SaveAsFile = app.style().standardIcon(QStyle.SP_DialogSaveAllButton)
+        cls.__icon.SaveAsFile = app.style().standardIcon(QStyle.SP_FileLinkIcon)
 
     @classmethod
     def readConfig(cls):
