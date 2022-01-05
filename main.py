@@ -16,8 +16,9 @@ if __name__ == '__main__':
     widget = main_form.MainForm()
 
     # 设置主题风格
-    _theme = '%s.xml' % Config.theme
-    apply_stylesheet(app, theme=_theme)
+    if Config.theme != 'None':
+        _theme = '%s.xml' % Config.theme
+        apply_stylesheet(app, theme=_theme)
 
     # 显示主界面
     if Config.maximized == 1:

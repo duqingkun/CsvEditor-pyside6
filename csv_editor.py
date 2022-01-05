@@ -1,7 +1,8 @@
 import csv
 import enum
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QTableWidget, QTableWidgetItem
-from PySide6.QtCore import Slot, Signal, QFileSystemWatcher
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
+from PySide6.QtCore import Slot, Signal, QFileSystemWatcher, Qt
+from PySide6.QtGui import QPalette
 
 
 class CsvEditor(QWidget):
@@ -32,6 +33,8 @@ class CsvEditor(QWidget):
         self.table = QTableWidget()
         self.layout = QHBoxLayout(self)
         self.layout.addWidget(self.table)
+        self.table.setAlternatingRowColors(True)
+        self.table.setPalette(QPalette(Qt.lightGray))
         self.setVisible(False)
 
         self.__fileWatcher.fileChanged.connect(self.fileChanged)
@@ -123,6 +126,9 @@ class CsvEditor(QWidget):
                     # 添加一行
                     self.__appendRow(row)
                 row_index += 1
+
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.table.horizontalHeader().setSectionResizeMode(self.table.columnCount() - 1, QHeaderView.Stretch)
 
         # 记录状态
         # 1. 清除表格内容改变的状态
